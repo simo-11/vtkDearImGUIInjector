@@ -10,8 +10,8 @@
 #include <vtkRenderWindowInteractor.h>
 #include <vtkSetGet.h>
 
-#ifdef ADOBE_IMGUI_SPECTRUM
 #include "Karla-Regular.hpp"
+#ifdef ADOBE_IMGUI_SPECTRUM
 #include "imgui_spectrum.h"
 #endif
 #include "imgui.h" // to draw custom UI
