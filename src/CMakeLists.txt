@@ -1,11 +1,4 @@
-if (USE_ADOBE_SPECTRUM_STYLE)
-  set(IMGUI_DIR "${PROJECT_SOURCE_DIR}/adobe_imgui_spectrum")
-  list(APPEND lib_definitions ADOBE_IMGUI_SPECTRUM)
-elseif(IMGUI_DIR) # From cli -DIMGUI_DIR
-  set(IMGUI_DIR IMGUI_DIR)
-else()
-  set(IMGUI_DIR "${PROJECT_SOURCE_DIR}/imgui")
-endif()
+set(IMGUI_DIR /users/simon/github/imgui)
 
 # sources and headers
 file(GLOB IMGUI_SOURCES ${IMGUI_DIR}/*.cpp)
