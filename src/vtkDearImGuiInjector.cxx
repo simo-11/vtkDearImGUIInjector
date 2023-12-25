@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <chrono>
+#include <thread>
 #include <string>
 #include <unordered_map>
 
@@ -478,6 +479,15 @@ void vtkDearImGuiInjector::UpdateMouseCursor(vtkRenderWindow* renWin)
 
 namespace
 {
+const int WIN_TITLE_LENGTH = 50;
+char windowTitle[WIN_TITLE_LENGTH];
+int originalTitleLength;
+char* originalTitle=nullptr;
+int loopCount=0;
+int titleUpdateInterval = 10;
+float targetMs = 50;
+std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+
 
 //------------------------------------------------------------------------------
 void mainLoopCallback(void* arg)
@@ -485,7 +495,36 @@ void mainLoopCallback(void* arg)
   vtkDearImGuiInjector* self = static_cast<vtkDearImGuiInjector*>(arg);
   vtkRenderWindowInteractor* interactor = self->Interactor;
   vtkRenderWindow* renWin = interactor->GetRenderWindow();
-
+  loopCount++;
+  if (originalTitle == nullptr)
+  {
+    originalTitle = _strdup(renWin->GetWindowName());
+    originalTitleLength = (int)strlen(originalTitle);
+  }
+  else 
+  {
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    long elapsedMs = std::chrono::duration_cast
+        <std::chrono::milliseconds>(end - start).count();
+    if (elapsedMs < targetMs)
+    {
+      long sleepMs = targetMs - elapsedMs;  
+      std::chrono::milliseconds duration(sleepMs);
+      std::this_thread::sleep_for(duration);
+      end = std::chrono::steady_clock::now();
+    }
+    elapsedMs = std::chrono::duration_cast
+        <std::chrono::milliseconds>(end - start).count();
+    float fps = 1000. / elapsedMs;
+    if (loopCount % titleUpdateInterval == 0)
+    {
+      snprintf(
+        windowTitle, WIN_TITLE_LENGTH, "%*s - %3.0f fps", 
+          originalTitleLength, originalTitle, fps);
+      renWin->SetWindowName(windowTitle);
+    }
+    start = end;
+  }
   self->InstallEventCallback(interactor);
   interactor->ProcessEvents();
   self->UninstallEventCallback();

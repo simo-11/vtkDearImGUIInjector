@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
   /// Change to your code begins here. ///
   // Initialize an overlay with DearImgui elements.
   vtkNew<vtkDearImGuiInjector> dearImGuiOverlay;
-  dearImGuiOverlay->DebugOn();
+  dearImGuiOverlay->DebugOff();
   // 💉 the overlay.
   dearImGuiOverlay->Inject(iren);
   // Listens to vtkDearImGuiInjector::ImGuiSetupEvent
