@@ -28,49 +28,58 @@ int main(int argc, char* argv[])
   vtkNew<vtkRenderer> renderer;
   vtkNew<vtkRenderWindow> renderWindow;
   vtkNew<vtkRenderWindowInteractor> iren;
-  renderWindow->SetMultiSamples(8);
+  int multiSamples = 8;
+  renderWindow->SetMultiSamples(multiSamples);
   renderWindow->AddRenderer(renderer);
   iren->SetRenderWindow(renderWindow);
 
-  // Create pipeline
-  vtkNew<vtkConeSource> coneSource;
-  coneSource->Update();
-
-  vtkNew<vtkPolyDataMapper> mapper;
-  mapper->SetInputConnection(coneSource->GetOutputPort());
-
-  vtkNew<vtkActor> actor;
-  actor->SetMapper(mapper);
-
-  // Add the actors to the scene
-  renderer->AddActor(actor);
-
+  bool cone = true;
+  if (cone)
+  {
+      // Create pipeline
+      vtkNew<vtkConeSource> coneSource;
+      coneSource->Update();
+      vtkNew<vtkPolyDataMapper> mapper;
+      mapper->SetInputConnection(coneSource->GetOutputPort());
+      vtkNew<vtkActor> actor;
+      actor->SetMapper(mapper);
+      // Add the actors to the scene
+      renderer->AddActor(actor);
+  }
+  
   // Start rendering app
   renderer->SetBackground(0.2, 0.3, 0.4);
   renderWindow->Render();
-
   /// Change to your code begins here. ///
   // Initialize an overlay with DearImgui elements.
   vtkNew<vtkDearImGuiInjector> dearImGuiOverlay;
   dearImGuiOverlay->DebugOff();
   // 💉 the overlay.
   dearImGuiOverlay->Inject(iren);
-  // Listens to vtkDearImGuiInjector::ImGuiSetupEvent
-  vtkNew<vtkCallbackCommand> uiSetupCmd;
-  uiSetupCmd->SetCallback(OverlayUI::setup);
-  dearImGuiOverlay->AddObserver(vtkDearImGuiInjector::ImGuiSetupEvent, uiSetupCmd);
-  // Listens to vtkDearImGuiInjector::ImGuiDrawEvent
-  vtkNew<vtkCallbackCommand> uiDrawCmd;
-  uiDrawCmd->SetCallback(OverlayUI::draw);
-  dearImGuiOverlay->AddObserver(vtkDearImGuiInjector::ImGuiDrawEvent, uiDrawCmd);
-  // You can draw custom user interface elements using ImGui:: namespace.
-  /// Change to your code ends here. ///
-
+  bool imGui = false;
+  if (imGui)
+  {
+      // Listens to vtkDearImGuiInjector::ImGuiSetupEvent
+      vtkNew<vtkCallbackCommand> uiSetupCmd;
+      uiSetupCmd->SetCallback(OverlayUI::setup);
+      dearImGuiOverlay->AddObserver(vtkDearImGuiInjector::ImGuiSetupEvent, uiSetupCmd);
+      // Listens to vtkDearImGuiInjector::ImGuiDrawEvent
+      vtkNew<vtkCallbackCommand> uiDrawCmd;
+      uiDrawCmd->SetCallback(OverlayUI::draw);
+      dearImGuiOverlay->AddObserver(vtkDearImGuiInjector::ImGuiDrawEvent, uiDrawCmd);
+      // You can draw custom user interface elements using ImGui:: namespace.
+      /// Change to your code ends here. ///
+  }
   vtkNew<vtkCameraOrientationWidget> camManipulator;
-  camManipulator->SetParentRenderer(renderer);
-  camManipulator->On();
-  auto rep = vtkCameraOrientationRepresentation::SafeDownCast(camManipulator->GetRepresentation());
-  rep->AnchorToLowerRight();
+  bool addCamManipulator = true;
+  if (addCamManipulator)
+  {
+    camManipulator->SetParentRenderer(renderer);
+    camManipulator->On();
+    auto rep =
+      vtkCameraOrientationRepresentation::SafeDownCast(camManipulator->GetRepresentation());
+    rep->AnchorToLowerRight();
+  }
 
   // Start event loop
   renderWindow->SetSize(1920, 1000);

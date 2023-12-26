@@ -479,7 +479,7 @@ void vtkDearImGuiInjector::UpdateMouseCursor(vtkRenderWindow* renWin)
 
 namespace
 {
-const int WIN_TITLE_LENGTH = 50;
+const int WIN_TITLE_LENGTH = 80;
 char windowTitle[WIN_TITLE_LENGTH];
 int originalTitleLength;
 char* originalTitle=nullptr;
@@ -518,9 +518,12 @@ void mainLoopCallback(void* arg)
     float fps = 1000. / elapsedMs;
     if (loopCount % titleUpdateInterval == 0)
     {
+      int *winSize = renWin->GetSize();
+      int xs = *winSize;
+      int ys = *(winSize + 1);
       snprintf(
-        windowTitle, WIN_TITLE_LENGTH, "%*s - %3.0f fps", 
-          originalTitleLength, originalTitle, fps);
+        windowTitle, WIN_TITLE_LENGTH, "%3.0f fps, %dx%d - %*s", 
+           fps, xs, ys, originalTitleLength, originalTitle);
       renWin->SetWindowName(windowTitle);
     }
     start = end;
