@@ -496,6 +496,7 @@ void mainLoopCallback(void* arg)
   vtkRenderWindowInteractor* interactor = self->Interactor;
   vtkRenderWindow* renWin = interactor->GetRenderWindow();
   loopCount++;
+  long elapsedMs=0;
   if (originalTitle == nullptr)
   {
     originalTitle = _strdup(renWin->GetWindowName());
@@ -504,7 +505,7 @@ void mainLoopCallback(void* arg)
   else 
   {
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    long elapsedMs = std::chrono::duration_cast
+    elapsedMs = std::chrono::duration_cast
         <std::chrono::milliseconds>(end - start).count();
     if (elapsedMs < targetMs)
     {
@@ -526,13 +527,22 @@ void mainLoopCallback(void* arg)
            fps, xs, ys, originalTitleLength, originalTitle);
       renWin->SetWindowName(windowTitle);
     }
-    start = end;
   }
   self->InstallEventCallback(interactor);
+  std::chrono::steady_clock::time_point beforeEvents = 
+      std::chrono::steady_clock::now();
   interactor->ProcessEvents();
+  std::chrono::steady_clock::time_point afterEvents = 
+      std::chrono::steady_clock::now();
+  long eventsMs =
+    std::chrono::duration_cast<std::chrono::milliseconds>
+      (afterEvents - beforeEvents).count();
   self->UninstallEventCallback();
-  if (!interactor->GetDone())
+  start = std::chrono::steady_clock::now();
+  if (!interactor->GetDone() && eventsMs > 0)
+  {
     renWin->Render();
+  }
 }
 
 #ifdef __EMSCRIPTEN__
