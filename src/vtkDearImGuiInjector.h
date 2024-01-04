@@ -7,7 +7,11 @@
 #include <vtkNew.h>
 #include <vtkObject.h>
 #include <vtkWeakPointer.h>
+#ifndef NO_VTK_IMGUI_EXPORT
 #include <vtkdearimguiinjector_export.h>
+#else
+#define VTKDEARIMGUIINJECTOR_EXPORT
+#endif
 
 #if __has_include(<vtkXRenderWindowInteractor.h>)
 #define USES_X11 1
