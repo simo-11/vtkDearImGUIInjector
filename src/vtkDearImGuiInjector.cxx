@@ -486,6 +486,7 @@ char* originalTitle=nullptr;
 int loopCount=0;
 int titleUpdateInterval = 10;
 float targetMs = 50;
+bool visible = true;
 std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
 
@@ -495,7 +496,6 @@ void mainLoopCallback(void* arg)
   vtkDearImGuiInjector* self = static_cast<vtkDearImGuiInjector*>(arg);
   vtkRenderWindowInteractor* interactor = self->Interactor;
   vtkRenderWindow* renWin = interactor->GetRenderWindow();
-  loopCount++;
   long elapsedMs=0;
   if (originalTitle == nullptr)
   {
@@ -504,12 +504,13 @@ void mainLoopCallback(void* arg)
   }
   else 
   {
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point end =
+        std::chrono::steady_clock::now();
     elapsedMs = std::chrono::duration_cast
         <std::chrono::milliseconds>(end - start).count();
     if (elapsedMs < targetMs)
     {
-      long sleepMs = targetMs - elapsedMs;  
+      long sleepMs = (visible || elapsedMs>0?targetMs - elapsedMs:300);
       std::chrono::milliseconds duration(sleepMs);
       std::this_thread::sleep_for(duration);
       end = std::chrono::steady_clock::now();
@@ -522,6 +523,14 @@ void mainLoopCallback(void* arg)
       int *winSize = renWin->GetSize();
       int xs = *winSize;
       int ys = *(winSize + 1);
+      if (xs == 0 && ys == 0)
+      {
+        visible = false;
+      }
+      else
+      {
+        visible = true;
+      }
       snprintf(
         windowTitle, WIN_TITLE_LENGTH, "%3.0f fps, %dx%d - %*s", 
            fps, xs, ys, originalTitleLength, originalTitle);
@@ -539,9 +548,13 @@ void mainLoopCallback(void* arg)
       (afterEvents - beforeEvents).count();
   self->UninstallEventCallback();
   start = std::chrono::steady_clock::now();
-  if (!interactor->GetDone() && eventsMs > 0)
+  if (!interactor->GetDone()
+      && eventsMs > 0)
   {
-    renWin->Render();
+    if (visible)
+    {
+      renWin->Render();
+    }
   }
 }
 
