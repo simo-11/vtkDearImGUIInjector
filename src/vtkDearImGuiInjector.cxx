@@ -483,11 +483,16 @@ const int WIN_TITLE_LENGTH = 80;
 char windowTitle[WIN_TITLE_LENGTH];
 int originalTitleLength;
 char* originalTitle=nullptr;
-int loopCount=0;
+int renderCount=0;
 int titleUpdateInterval = 10;
 float targetMs = 50;
+long maxMsWithoutRender = 500;
+long sleepMsIfNotVisible = 300;
 bool visible = true;
-std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+std::chrono::steady_clock::time_point start 
+    = std::chrono::steady_clock::now();
+std::chrono::steady_clock::time_point 
+    fpsMeasureStart, fpsMeasureEnd, lastRender;
 
 
 //------------------------------------------------------------------------------
@@ -497,6 +502,20 @@ void mainLoopCallback(void* arg)
   vtkRenderWindowInteractor* interactor = self->Interactor;
   vtkRenderWindow* renWin = interactor->GetRenderWindow();
   long elapsedMs=0;
+  int* winSize = renWin->GetSize();
+  int xs = *winSize;
+  int ys = *(winSize + 1);
+  if (xs == 0 && ys == 0)
+  {
+    visible = false;
+  }
+  else
+  {
+    visible = true;
+  }
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+  long timeSinceLastRender =
+    std::chrono::duration_cast<std::chrono::milliseconds>(end - lastRender).count();
   if (originalTitle == nullptr)
   {
     originalTitle = _strdup(renWin->GetWindowName());
@@ -504,56 +523,61 @@ void mainLoopCallback(void* arg)
   }
   else 
   {
-    std::chrono::steady_clock::time_point end =
-        std::chrono::steady_clock::now();
     elapsedMs = std::chrono::duration_cast
         <std::chrono::milliseconds>(end - start).count();
     if (elapsedMs < targetMs)
     {
-      long sleepMs = (visible || elapsedMs>0?targetMs - elapsedMs:300);
+      long sleepMs = (visible || elapsedMs > 0 ? 
+          targetMs - elapsedMs : sleepMsIfNotVisible);
       std::chrono::milliseconds duration(sleepMs);
       std::this_thread::sleep_for(duration);
       end = std::chrono::steady_clock::now();
     }
-    elapsedMs = std::chrono::duration_cast
-        <std::chrono::milliseconds>(end - start).count();
-    float fps = 1000. / elapsedMs;
-    if (loopCount % titleUpdateInterval == 0)
-    {
-      int *winSize = renWin->GetSize();
-      int xs = *winSize;
-      int ys = *(winSize + 1);
-      if (xs == 0 && ys == 0)
-      {
-        visible = false;
-      }
-      else
-      {
-        visible = true;
-      }
-      snprintf(
-        windowTitle, WIN_TITLE_LENGTH, "%3.0f fps, %dx%d - %*s", 
-           fps, xs, ys, originalTitleLength, originalTitle);
-      renWin->SetWindowName(windowTitle);
-    }
   }
-  self->InstallEventCallback(interactor);
-  std::chrono::steady_clock::time_point beforeEvents = 
-      std::chrono::steady_clock::now();
-  interactor->ProcessEvents();
-  std::chrono::steady_clock::time_point afterEvents = 
-      std::chrono::steady_clock::now();
-  long eventsMs =
-    std::chrono::duration_cast<std::chrono::milliseconds>
-      (afterEvents - beforeEvents).count();
-  self->UninstallEventCallback();
+  bool hasEvents = false;
+  MSG msg;
+  peekLoop:
+  while(PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE))
+  {
+    switch (msg.message)
+    {
+      case SPI_SETSNAPTODEFBUTTON:
+      case WM_TIMER:
+        PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE);
+        break;
+      default:
+        hasEvents = true;
+        break;
+    }
+   break;
+  } 
+  if (hasEvents)
+  {
+    self->InstallEventCallback(interactor);
+    interactor->ProcessEvents();
+    self->UninstallEventCallback();
+  }
   start = std::chrono::steady_clock::now();
   if (!interactor->GetDone()
-      && eventsMs > 0)
+      && (hasEvents|| timeSinceLastRender>maxMsWithoutRender))
   {
     if (visible)
     {
       renWin->Render();
+      lastRender = std::chrono::steady_clock::now();
+      fpsMeasureEnd = lastRender;
+      long renderMs =
+        std::chrono::duration_cast<std::chrono::milliseconds>
+          (fpsMeasureEnd - fpsMeasureStart).count();
+      fpsMeasureStart = fpsMeasureEnd;
+      if (renderMs < 1000)
+      {
+        float fps = 1000. / renderMs;
+        snprintf(windowTitle, WIN_TITLE_LENGTH, 
+            "% 3.0f fps, %dx%d - %*s", fps, xs, ys,
+          originalTitleLength, originalTitle);
+        renWin->SetWindowName(windowTitle);
+      }
     }
   }
 }
